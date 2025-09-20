@@ -1,0 +1,5 @@
+{
+  "name": "ProntMed",
+  "description": "Organize todos os seus exames, consultas, receitas e histórico médico em um só lugar, com upload de arquivos (PDF, imagens, textos) e linha do tempo visual. Compartilhe seu histórico com médicos ou familiares via link seguro e receba alertas de consultas futuras.",
+  "requestFramePermissions": []
+}
