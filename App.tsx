@@ -10,7 +10,39 @@ import ConfirmationModal from './components/ConfirmationModal';
 import Auth from './Auth';
 import AddAppointmentModal from './components/AddAppointmentModal';
 
-// Mock Data
+// Custom hook for state with localStorage persistence
+function useLocalStorageState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [state, setState] = useState<T>(() => {
+    try {
+      const storedValue = localStorage.getItem(key);
+      if (storedValue) {
+        // Handle date revival for complex objects
+        return JSON.parse(storedValue, (k, v) => {
+            if (k === 'date' || k === 'uploadDate') {
+                return new Date(v);
+            }
+            return v;
+        });
+      }
+    } catch (error) {
+      console.error(`Error reading from localStorage for key "${key}":`, error);
+    }
+    return defaultValue;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (error) {
+      console.error(`Error writing to localStorage for key "${key}":`, error);
+    }
+  }, [key, state]);
+
+  return [state, setState];
+}
+
+
+// Mock Data - used only if localStorage is empty
 const initialAppointments: Appointment[] = [
   { id: 'apt1', date: new Date(new Date().setDate(new Date().getDate() + 7)), doctor: 'Dr. House', specialty: 'Cardiologia', location: 'Hospital Central' },
   { id: 'apt2', date: new Date(new Date().setDate(new Date().getDate() + 15)), doctor: 'Dra. Grey', specialty: 'Dermatologia', location: 'Clínica Dermato' },
@@ -24,9 +56,9 @@ const initialTimelineEvents: TimelineEvent[] = [
 ];
 
 const MainLayout: React.FC<{ user: { name: string }; onLogout: () => void }> = ({ user, onLogout }) => {
-  const [documents, setDocuments] = useState<MedicalDocument[]>([]);
-  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>(initialTimelineEvents);
-  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [documents, setDocuments] = useLocalStorageState<MedicalDocument[]>('prontmedDocuments', []);
+  const [timelineEvents, setTimelineEvents] = useLocalStorageState<TimelineEvent[]>('prontmedTimelineEvents', initialTimelineEvents);
+  const [appointments, setAppointments] = useLocalStorageState<Appointment[]>('prontmedAppointments', initialAppointments);
 
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -106,11 +138,13 @@ const MainLayout: React.FC<{ user: { name: string }; onLogout: () => void }> = (
 
     if (file) {
       const newDocId = `doc${Date.now()}`;
+      // Omitting the 'file' property from being stored in localStorage for performance and size reasons.
+      // In a real app, this would be uploaded to a server.
       const newDocument: MedicalDocument = {
         id: newDocId,
         name: file.name,
         type: file.type,
-        file: file,
+        file: file, // This won't be stringified correctly but is needed for IA summary
         uploadDate: new Date(),
         size: file.size,
       };
@@ -119,7 +153,7 @@ const MainLayout: React.FC<{ user: { name: string }; onLogout: () => void }> = (
     }
 
     setTimelineEvents(prev => [newEvent, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime()));
-  }, []);
+  }, [setDocuments, setTimelineEvents]);
 
   const handleEditEvent = (event: TimelineEvent) => setEditingEvent(event);
   const handleEditAppointment = (appointment: Appointment) => setEditingAppointment(appointment);
@@ -179,6 +213,7 @@ const MainLayout: React.FC<{ user: { name: string }; onLogout: () => void }> = (
             <Dashboard
               timelineEvents={timelineEvents}
               documents={documents}
+              appointments={appointments}
               onAddRecord={addRecord}
               onEditEvent={handleEditEvent}
               onDeleteEventRequest={handleDeleteEventRequest}
@@ -252,6 +287,7 @@ const App: React.FC = () => {
     }, []);
 
     const handleAuthSuccess = (authenticatedUser: { name: string }) => {
+        localStorage.setItem('prontmedUser', JSON.stringify(authenticatedUser));
         setUser(authenticatedUser);
     };
 

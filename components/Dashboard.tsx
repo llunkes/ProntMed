@@ -1,36 +1,44 @@
-import React, { useState } from 'react';
-import { TimelineEvent, MedicalDocument } from '../types';
+import React, { useState, useMemo } from 'react';
+import { TimelineEvent, MedicalDocument, Appointment, MedicalRecordType } from '../types';
 import FileUpload from './FileUpload';
 import Timeline from './Timeline';
 import DocumentList from './DocumentList';
 import AdBanner from './AdBanner';
 import ShareModal from './ShareModal';
 import { ShareIcon } from './icons';
+import DashboardStats from './DashboardStats';
 
 interface DashboardProps {
   timelineEvents: TimelineEvent[];
   documents: MedicalDocument[];
+  appointments: Appointment[];
   onAddRecord: (event: Omit<TimelineEvent, 'id' | 'date'>, file?: File) => void;
   onEditEvent: (event: TimelineEvent) => void;
   onDeleteEventRequest: (id: string) => void;
   onDeleteDocumentRequest: (docId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ timelineEvents, documents, onAddRecord, onEditEvent, onDeleteEventRequest, onDeleteDocumentRequest }) => {
+const Dashboard: React.FC<DashboardProps> = ({ timelineEvents, documents, appointments, onAddRecord, onEditEvent, onDeleteEventRequest, onDeleteDocumentRequest }) => {
   const [isShareModalOpen, setShareModalOpen] = useState(false);
-  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<MedicalRecordType | 'all'>('all');
+
+  const filteredEvents = useMemo(() => {
+    return timelineEvents.filter(event => {
+      const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            event.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = filterType === 'all' || event.type === filterType;
+      return matchesSearch && matchesType;
+    });
+  }, [timelineEvents, searchTerm, filterType]);
+
   return (
     <div className="space-y-8">
-      <div className="text-center bg-gradient-to-br from-blue-50 to-indigo-100 p-8 rounded-xl shadow-lg border border-gray-200">
-        <h2 className="text-4xl md:text-5xl font-extrabold">
-          <span className="bg-gradient-to-r from-brand-blue to-indigo-600 bg-clip-text text-transparent">
-            Organize toda sua saúde em um único painel.
-          </span>
-        </h2>
-        <p className="mt-4 text-lg text-brand-gray max-w-3xl mx-auto">
-          Simples, seguro e gratuito. Adicione seus exames, consultas e receitas para começar a construir seu histórico médico digital.
-        </p>
-      </div>
+      <DashboardStats 
+        totalRecords={timelineEvents.length}
+        totalDocuments={documents.length}
+        upcomingAppointments={appointments.filter(a => a.date >= new Date()).length}
+      />
 
       <div className="relative">
           <button
@@ -44,7 +52,28 @@ const Dashboard: React.FC<DashboardProps> = ({ timelineEvents, documents, onAddR
           <FileUpload onAddRecord={onAddRecord} />
       </div>
 
-      <Timeline events={timelineEvents} onEdit={onEditEvent} onDeleteRequest={onDeleteEventRequest} />
+      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">Filtrar Linha do Tempo</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            type="text"
+            placeholder="Buscar por título ou descrição..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-blue focus:border-brand-blue"
+          />
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as MedicalRecordType | 'all')}
+            className="w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-blue focus:border-brand-blue rounded-md"
+          >
+            <option value="all">Todos os Tipos</option>
+            {Object.values(MedicalRecordType).map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <Timeline events={filteredEvents} onEdit={onEditEvent} onDeleteRequest={onDeleteEventRequest} />
 
       <AdBanner width="100%" height={120} />
 

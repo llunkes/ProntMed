@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { MedicalRecordType, TimelineEvent } from '../types';
 import { UploadIcon } from './icons';
 
@@ -12,16 +12,42 @@ const FileUpload: React.FC<FileUploadProps> = ({ onAddRecord }) => {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     } else {
-      // Lida com o caso em que o usuário cancela a seleção de arquivo
       setFile(null);
     }
   };
+
+  const handleDragEvents = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    handleDragEvents(e);
+    setIsDragging(true);
+  }, [handleDragEvents]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    handleDragEvents(e);
+    setIsDragging(false);
+  }, [handleDragEvents]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    handleDragEvents(e);
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFile(e.dataTransfer.files[0]);
+      if (fileInputRef.current) {
+        fileInputRef.current.files = e.dataTransfer.files;
+      }
+    }
+  }, [handleDragEvents]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +60,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onAddRecord }) => {
     setDescription('');
     setFile(null);
     setError('');
-    // Reseta o input de arquivo usando a ref
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -81,7 +106,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ onAddRecord }) => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Anexar Arquivo (Opcional)</label>
-          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+          <div 
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors ${isDragging ? 'border-brand-blue bg-brand-blue-light' : 'border-gray-300'}`}
+          >
             <div className="space-y-1 text-center">
               <UploadIcon className="mx-auto h-12 w-12 text-gray-400"/>
               <div className="flex text-sm text-gray-600">

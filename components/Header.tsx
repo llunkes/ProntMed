@@ -1,6 +1,6 @@
 import React from 'react';
 import AdBanner from './AdBanner';
-import { PlusCircleIcon } from './icons';
+import LogoIcon from './LogoIcon';
 
 interface HeaderProps {
     user: { name: string };
@@ -14,7 +14,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
       <div className="max-w-screen-2xl mx-auto px-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center space-x-3">
-            <PlusCircleIcon className="w-10 h-10 text-brand-blue" />
+            <LogoIcon className="w-10 h-10 text-brand-blue" />
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
               ProntMed
             </h1>

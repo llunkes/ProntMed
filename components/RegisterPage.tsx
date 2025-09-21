@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircleIcon } from './icons';
+import LogoIcon from './LogoIcon';
 
 interface RegisterPageProps {
     onAuthSuccess: (user: { name: string }) => void;
@@ -24,14 +24,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onAuthSuccess, onToggleView
         }
         setError('');
         // Simulate successful registration and login
-        localStorage.setItem('prontmedUser', JSON.stringify({ name }));
         onAuthSuccess({ name });
     };
 
     return (
         <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
             <div className="flex flex-col items-center mb-6">
-                <PlusCircleIcon className="w-12 h-12 text-brand-blue" />
+                <LogoIcon className="w-12 h-12 text-brand-blue" />
                 <h2 className="mt-2 text-3xl font-bold text-gray-800">Crie sua conta no ProntMed</h2>
                 <p className="text-brand-gray">É rápido e fácil.</p>
             </div>
